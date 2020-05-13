@@ -265,18 +265,24 @@ function Add-ToSystemPath {
     }
     $systemPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine').Split(';')
     $currentPath = $env:PATH.Split(';')
+    $newPath = $false
     foreach($p in $Path) {
         if($p -notin $systemPath) {
             $systemPath += $p
+            newPath = $true
         }
         if($p -notin $currentPath) {
             $currentPath += $p
+            newPath = $true
         }
     }
-    $env:PATH = $currentPath -join ';'
-    setx.exe /M PATH ($systemPath -join ';')
-    if($LASTEXITCODE) {
-        Throw "Failed to set the new system path"
+    if ($newPath) {
+        $env:PATH = $currentPath -join ';'
+        Write-Output "Setting systemPath: $systemPath"
+        setx.exe /M PATH ($systemPath -join ';')
+        if($LASTEXITCODE) {
+            Throw "Failed to set the new system path"
+        }
     }
 }
 
@@ -293,6 +299,7 @@ function Install-Tool {
     )
     if($InstallDirectory -and (Test-Path $InstallDirectory)) {
         Write-Output "$InstallerPath is already installed."
+        Write-Output "Adding to system path: $EnvironmentPath"
         Add-ToSystemPath -Path $EnvironmentPath
         return
     }
@@ -311,7 +318,7 @@ function Install-Tool {
     Write-Output "Installing $InstallerPath with " @parameters
     $p = Start-Process @parameters
     if($p.ExitCode -ne 0) {
-        Throw "Failed to install: $InstallerPath"
+        Throw "Failed to install: $InstallerPath\n$p.ExitCode"
     }
     Add-ToSystemPath -Path $EnvironmentPath
     Write-Output "Successfully installed: $InstallerPath"
