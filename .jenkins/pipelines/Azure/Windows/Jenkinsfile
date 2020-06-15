@@ -14,7 +14,9 @@ AGENTS_LABELS = [
     "acc-win2016":      env.WINDOWS_2016_CUSTOM_LABEL ?: "SGX-Windows-2016",
     "acc-win2016-dcap": env.WINDOWS_2016_DCAP_CUSTOM_LABEL ?: "SGXFLC-Windows-2016-DCAP",
     "acc-win2019":      env.WINDOWS_2019_CUSTOM_LABEL ?: "SGX-Windows-2019",
-    "acc-win2019-dcap": env.WINDOWS_2019_DCAP_CUSTOM_LABEL ?: "SGXFLC-Windows-2019-DCAP"
+    "acc-win2019-dcap": env.WINDOWS_2019_DCAP_CUSTOM_LABEL ?: "SGXFLC-Windows-2019-DCAP",
+    "acc-win2016-vanilla": env.WINDOWS_VANILLA_2016_CUSTOM_LABEL ?: "vanilla-win2016",
+    "acc-win2019-vanilla": env.WINDOWS_VANILLA_2019_CUSTOM_LABEL ?: "vanilla-win2019"
 ]
 
 def windowsLinuxElfBuild(String label, String version, String compiler, String build_type, String lvi_mitigation = 'None', String lvi_mitigation_skip_tests = 'OFF') {
