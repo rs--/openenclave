@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   docs/DesignDocs/oesign_digest_signing_support.md).
 - Oeedger8r now supports the --use-prefix feature.
 - Oeedger8r now supports a subset of C-style preprocessor directives (#ifdef, #ifndef, #else, #endif).
+<<<<<<< HEAD
 - The default memory allocator (dlmalloc) can be replaced by providing replacement functions. This ability to plug-in
   a custom allocator is most applicable for multi-threaded enclaves with memory allocation patterns where the default
   memory allocator may not be performant. See [Pluggable Allocators](docs/DesignDocs/Pluggableallocators.md).
@@ -40,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Gcov is used to obtain code coverage information for the SDK. See [Code Coverage](docs/GettingStartedDocs/Contributors/CodeCoverage.md).
 - Added include\openenclave\attestation\attester.h to support attestation plug-in model attester scenarios.
 - Added include\openenclave\attestation\verifier.h to support attestation plug-in model verifier scenarios.
+=======
+>>>>>>> 9f649c93c... Update oeedger8r to the latest version
 
 ### Changed
 - `COMPILE_SYSTEM_EDL` is now OFF by default, meaning system EDL must be imported by
@@ -60,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Deep-copy feature of oeedger8r is now enabled by default.
 - The oeedger8r-generated header files now contain only the function prototypes. Marshalling structs, function id enums,
   and function tables are generated only in the c files.
+<<<<<<< HEAD
 - Docs and scripts updated to use Azure DCAP client v1.6.0.
 - Fix #2930. Fixes the logic of detecting compilers when LVI mitigation is enabled. That is, the old logic always picks clang-7 (if installed) regardless of whether the environment variable CC is set to gcc.
 - Fix #2670. This fix also allows users to specify the version of clang (default is clang-7) when building the helloworld sample with LVI mitigation.
@@ -67,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - If not specified, CMAKE_BUILD_TYPE is set to Debug. This ensures that cmake and cmake -DCMAKE_BUILD_TYPE=Debug result in the same build configuration.
 - Moved include/openenclave/attestation/plugin.h to internal. Currently only support internal attestation plugin registration.
 - Parameter _flags_ is removed from experimental function oe_get_evidence(). Use 'evidence_format' parameter to select evidence format.
+=======
+>>>>>>> 9f649c93c... Update oeedger8r to the latest version
 
 ### Removed
 - Removed oehostapp and the appendent "-rdynamic" compiling option. Please use oehost instead and add the option back manually if necessary.
