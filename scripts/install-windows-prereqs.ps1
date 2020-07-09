@@ -624,7 +624,16 @@ function Install-DCAP-Dependencies {
                     }
                 }
 
-                if ($OS_VERSION -eq "WinServer2019")
+                try
+                {
+                    Write-Output "Installing driver $driverLocation"
+                    $install = & $devConBinaryPath install "$($inf.FullName)" $driverLocation
+                    Write-Output $install
+                    if($LASTEXITCODE) {
+                        Throw "Failed to install $driver driver"
+                    }
+                }
+                catch
                 {
                     Write-Output "Updating driver $driverLocation"
                     $hardwareId = $drivers[${OS_VERSION}][$driver]['hardware_id']
@@ -633,15 +642,6 @@ function Install-DCAP-Dependencies {
                     # Exit code 0 is success, and 1 is required reboot
                     if($LASTEXITCODE -ge 2) {
                         Throw "Failed to update $driver driver"
-                    }
-                }
-                else
-                {
-                    Write-Output "Installing driver $driverLocation"
-                    $install = & $devConBinaryPath install "$($inf.FullName)" $driverLocation
-                    Write-Output $install
-                    if($LASTEXITCODE) {
-                        Throw "Failed to install $driver driver"
                     }
                 }
             }
