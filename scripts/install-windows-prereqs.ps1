@@ -14,7 +14,7 @@ Param(
     [string]$VSBuildToolsHash = '',
     [string]$Clang7URL = 'http://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe',
     [string]$Clang7Hash = '672E4C420D6543A8A9F8EC5F1E5F283D88AC2155EF4C57232A399160A02BFF57',
-    [string]$IntelPSWURL = 'http://registrationcenter-download.intel.com/akdlm/irc_nas/16607/Intel%20SGX%20PSW%20for%20Windows%20v2.7.101.2.exe',
+    [string]$IntelPSWURL = 'http://registrationcenter-download.intel.com/akdlm/irc_nas/16766/Intel%20SGX%20PSW%20for%20Windows%20v2.8.100.2.exe',
     [string]$IntelPSWHash = 'AF669A4593411E9AABCE18838C91003866DDDEDAC5BEEC61DE160025008B0A19',
     [string]$IntelPSWInfHash = '48e7c1e9-6de8-46ee-8ff9-46aa7b7ee5b9',
     [string]$ShellCheckURL = 'https://shellcheck.storage.googleapis.com/shellcheck-v0.7.0.zip',
@@ -23,7 +23,7 @@ Param(
     [string]$NugetHash = '2D4D38666E5C7D27EE487C60C9637BD9DD63795A117F0E0EDC68C55EE6DFB71F',
     [string]$DevconURL = 'https://download.microsoft.com/download/7/D/D/7DD48DE6-8BDA-47C0-854A-539A800FAA90/wdk/Installers/787bee96dbd26371076b37b13c405890.cab',
     [string]$DevconHash = 'A38E409617FC89D0BA1224C31E42AF4344013FEA046D2248E4B9E03F67D5908A',
-    [string]$IntelDCAPURL = 'http://registrationcenter-download.intel.com/akdlm/irc_nas/16620/Intel%20SGX%20DCAP%20for%20Windows%20v1.6.100.2.exe',
+    [string]$IntelDCAPURL = 'http://registrationcenter-download.intel.com/akdlm/irc_nas/16767/Intel%20SGX%20DCAP%20for%20Windows%20v1.7.100.2.exe',
     [string]$IntelDCAPHash = '39DB3E183E79400A4A1C635E67A927C8E5C75A19E5A2A7FC537E1B24D8FDF42E',
     [string]$VCRuntime2012URL = 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe',
     [string]$VCRuntime2012Hash = '681BE3E5BA9FD3DA02C09D7E565ADFA078640ED66A0D58583EFAD2C1E3CC4064',
@@ -160,6 +160,8 @@ function Start-LocalPackagesDownload {
                            -Destination $PACKAGES[$pkg]["local_file"]
         $downloaded_hash = Get-FileHash $PACKAGES[$pkg]["local_file"]
         $expected_hash = $PACKAGES[$pkg]["hash"]
+        Get-ChildItem $PACKAGES[$pkg]["local_file"]
+        continue
         if ($expected_hash -ne "")
         {
             if ($downloaded_hash.Hash -ne $expected_hash)
@@ -433,15 +435,9 @@ function Update-PSW {
     if(Test-Path $tempInstallDir) {
         Remove-Item -Recurse -Force $tempInstallDir
     }
-    Install-ZipTool -ZipPath $PACKAGES["psw"]["local_file"] `
-                    -InstallDirectory $tempInstallDir
 
-    $signedZip = Get-Item "$tempInstallDir\Intel*SGX*\PSW_INF_RS3_and_above\component\Signed_*.zip"
-    $infDir = "$tempInstallDir\PSW_INF"
-    Install-ZipTool -ZipPath $signedZip `
-                    -InstallDirectory $infDir
-
-    $inf = Get-Item "$infDir\drivers\$IntelPSWInfHash\sgx_psw.inf"
+    $infDir = "$tempInstallDir\PSW_INF_RS3*"
+    $inf = Get-Item "$infDir\sgx_psw.inf"
     $devConPath = Get-DevconBinary
 
     $output = & $devConPath update $inf  "SWC\VEN_INT&DEV_0E0C"
@@ -565,6 +561,7 @@ function Install-DCAP-Dependencies {
                 'sgx_base' = @{
                     'zip_path'    = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel SGX DCAP for Windows *\LC_driver_${OS_VERSION}\Signed_*.zip"
                     'location'    = 'root\SgxLCDevice'
+                    'path'        = 'base\WinServer2019*\*.inf'
                     'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
                     'hardware_id' = '*INT0E0C'
                 }
@@ -572,6 +569,7 @@ function Install-DCAP-Dependencies {
                     'zip_path'    = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel SGX DCAP for Windows *\DCAP_INF\${OS_VERSION}\Signed_*.zip"
                     'location'    = 'root\SgxLCDevice_DCAP'
                     'description' = 'Intel(R) Software Guard Extensions DCAP Components Device'
+                    'path'        = 'dcap\WinServer2019*\*.inf'
                     'hardware_id' = 'SWC\VEN_INT&DEV_0E0C_DCAP'
                 }
             }
@@ -590,17 +588,8 @@ function Install-DCAP-Dependencies {
         }
         $devConBinaryPath = Get-DevconBinary
         foreach($driver in $drivers[${OS_VERSION}].Keys) {
-            $zip = Get-Item $drivers[${OS_VERSION}][$driver]['zip_path']
-            if(!$zip) {
-                Throw "Cannot find the zile file with $driver"
-            }
-            if($zip.Count -gt 1) {
-                $zip
-                Throw "Multiple driver zip files found"
-            }
-            New-Item -ItemType Directory -Force -Path "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\$driver"
-            Expand-Archive -Path $zip -DestinationPath "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\$driver" -Force
-            $inf = Get-Item "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\$driver\drivers\*\$driver.inf"
+            $path = $drivers[${OS_VERSION}][$driver]['path']
+            $inf = Get-Item "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\$path"
             if(!$inf) {
                 Throw "Cannot find $driver.inf file"
             }
