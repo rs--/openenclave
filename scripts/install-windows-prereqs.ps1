@@ -435,12 +435,8 @@ function Update-PSW {
     Install-ZipTool -ZipPath $PACKAGES["psw"]["local_file"] `
                     -InstallDirectory $tempInstallDir
 
-    $signedZip = Get-Item "$tempInstallDir\Intel*SGX*\PSW_INF_RS3_and_above\component\Signed_*.zip"
-    $infDir = "$tempInstallDir\PSW_INF"
-    Install-ZipTool -ZipPath $signedZip `
-                    -InstallDirectory $infDir
-
-    $inf = Get-Item "$infDir\drivers\$IntelPSWInfHash\sgx_psw.inf"
+    $infDir = "$tempInstallDir\Intel*SGX*\PSW_INF_RS3_and_above"
+    $inf = Get-Item "$infDir\sgx_psw.inf"
     $devConPath = Get-DevconBinary
 
     $output = & $devConPath update $inf  "SWC\VEN_INT&DEV_0E0C"
@@ -550,25 +546,25 @@ function Install-DCAP-Dependencies {
         $drivers = @{
             'WinServer2016' = @{
                 'sgx_base_dev' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\base\WindowsServer2016"
+                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\base\WindowsServer2016"
                     'location'    = 'root\SgxLCDevice'
                     'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
                 }
                 'sgx_dcap_dev' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\dcap\WindowsServer2016"
+                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\dcap\WindowsServer2016"
                     'location'    = 'root\SgxLCDevice_DCAP'
                     'description' = 'Intel(R) Software Guard Extensions DCAP Components Device'
                 }
             }
             'WinServer2019' = @{
                 'sgx_base' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\base\WindowsServer2019_Windows10"
+                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\base\WindowsServer2019_Windows10"
                     'location'    = 'root\SgxLCDevice'
                     'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
                     'hardware_id' = '*INT0E0C'
                 }
                 'sgx_dcap' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\dcap\WindowsServer2019_Windows10"
+                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\dcap\WindowsServer2019_Windows10"
                     'location'    = 'root\SgxLCDevice_DCAP'
                     'description' = 'Intel(R) Software Guard Extensions DCAP Components Device'
                     'hardware_id' = 'SWC\VEN_INT&DEV_0E0C_DCAP'
@@ -576,12 +572,12 @@ function Install-DCAP-Dependencies {
             }
             'Win10' = @{
                 'sgx_base' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\base\WindowsServer2019_Windows10"
+                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\base\WindowsServer2019_Windows10"
                     'location'    = 'root\SgxLCDevice'
                     'description' = 'Intel(R) Software Guard Extensions Launch Configuration Service'
                 }
                 'sgx_dcap' = @{
-                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\dcap\WindowsServer2019_Windows10"
+                    'path'        = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP\Intel*SGX*DCAP*\dcap\WindowsServer2019_Windows10"
                     'location'    = 'root\SgxLCDevice_DCAP'
                     'description' = 'Intel(R) Software Guard Extensions DCAP Components Device'
                 }
