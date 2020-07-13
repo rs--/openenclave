@@ -427,6 +427,46 @@ function Install-PSW {
     } -RetryMessage "Failed to start AESMService. Retrying"
 }
 
+function Update-PSW {
+    $tempInstallDir = "$PACKAGES_DIRECTORY\Intel_SGX_PSW"
+    if(Test-Path $tempInstallDir) {
+        Remove-Item -Recurse -Force $tempInstallDir
+    }
+    Install-ZipTool -ZipPath $PACKAGES["psw"]["local_file"] `
+                    -InstallDirectory $tempInstallDir
+
+    $inf = Get-Item "$tempInstallDir\Intel SGX PSW for Windows*\PSW_INF_RS3_and_above\sgx_psw.inf"
+    $devConBinaryPath = Get-DevconBinary
+    $update = & $devConBinaryPath update $inf "SWC\VEN_INT&DEV_0E0C"
+    Write-Output $update
+    if($LASTEXITCODE -ge 2) {
+        Throw "PSW update failed"
+    }
+}
+function Update-DCAP {
+    $tempInstallDir = "$PACKAGES_DIRECTORY\Intel_SGX_DCAP"
+    if(Test-Path $tempInstallDir) {
+        Remove-Item -Recurse -Force $tempInstallDir
+    }
+    Install-ZipTool -ZipPath $PACKAGES["dcap"]["local_file"] `
+                    -InstallDirectory $tempInstallDir
+
+    $baseInf = Get-Item "$tempInstallDir\Intel SGX DCAP for Windows*\base\WindowsServer2019_Windows10\sgx_base.inf"
+    $dcapInf = Get-Item "$tempInstallDir\Intel SGX DCAP for Windows*\dcap\WindowsServer2019_Windows10\sgx_dcap.inf"
+    $devConBinaryPath = Get-DevconBinary
+
+    $update = & $devConBinaryPath update $baseInf "*INT0E0C"
+    Write-Output $update
+    if($LASTEXITCODE -ge 2) {
+        Throw "Base update failed"
+    }
+    $update = & $devConBinaryPath update $dcapInf "SWC\VEN_INT&DEV_0E0C_DCAP"
+    Write-Output $update
+    if($LASTEXITCODE -ge 2) {
+        Throw "DCAP update failed"
+    }
+}
+
 function Install-VisualStudio {
     $installerArguments = @(
         "-q", "--wait", "--norestart",
@@ -679,12 +719,22 @@ try {
     Install-Shellcheck
     Install-NSIS
 
-    if (($LaunchConfiguration -ne "SGX1FLC-NoDriver") -and ($LaunchConfiguration -ne "SGX1-NoDriver"))
+    $OS_VERSION = Get-WindowsRelease
+    if ($OS_VERSION -eq "WinServer2019") {
+        Update-PSW
+    }
+    elseif (($LaunchConfiguration -ne "SGX1FLC-NoDriver") -and ($LaunchConfiguration -ne "SGX1-NoDriver"))
     {
         Install-PSW
     }
 
-    Install-DCAP-Dependencies
+    if ($OS_VERSION -eq "WinServer2019") {
+        Update-DCAP
+    }
+    else
+    {
+        Install-DCAP-Dependencies
+    }
     Install-VCRuntime
 
 
