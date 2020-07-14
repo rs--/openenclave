@@ -720,7 +720,6 @@ try {
         }
         else
         {
-            Update-PSW
         }
     }
 
