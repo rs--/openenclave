@@ -45,16 +45,6 @@ $PACKAGES_DIRECTORY = Join-Path $env:TEMP "packages"
 $OE_NUGET_DIR = $InstallPath
 
 $PACKAGES = @{
-    "git" = @{
-        "url" = $GitURL
-        "hash" = $GitHash
-        "local_file" = Join-Path $PACKAGES_DIRECTORY "Git-64-bit.exe"
-    }
-    "7z" = @{
-        "url" = $SevenZipURL
-        "hash" = $SevenZipHash
-        "local_file" = Join-Path $PACKAGES_DIRECTORY "7z-x64.msi"
-    }
     "vs_buildtools" = @{
         "url" = $VSBuildToolsURL
         "hash" = $VSBuildToolsHash
@@ -69,11 +59,6 @@ $PACKAGES = @{
         "url" = $IntelPSWURL
         "hash" = $IntelPSWHash
         "local_file" = Join-Path $PACKAGES_DIRECTORY "Intel_SGX_PSW_for_Windows.exe"
-    }
-    "shellcheck" = @{
-        "url" = $ShellCheckURL
-        "hash" = $ShellCheckHash
-        "local_file" = Join-Path $PACKAGES_DIRECTORY "shellcheck.zip"
     }
     "nuget" = @{
         "url" = $NugetURL
@@ -617,6 +602,7 @@ function Install-DCAP-Dependencies {
     # Note: the ordering of nuget installs below is important to preserve here until the issue with the EnclaveCommonAPI nuget package gets fixed.
     if ($DCAPClientType -eq "Azure")
     {
+        & Get-ChildItem $PACKAGES_DIRECTORY -Recurse
         & nuget.exe install 'Microsoft.Azure.DCAP' -Source "$PACKAGES_DIRECTORY" -OutputDirectory "$OE_NUGET_DIR" -ExcludeVersion
         if($LASTEXITCODE -ne 0) {
             Throw "Failed to install nuget Microsoft.Azure.DCAP"
@@ -642,7 +628,7 @@ function Install-DCAP-Dependencies {
         Throw "Failed to install nuget EnclaveCommonAPI"
     }
 
-    if (($LaunchConfiguration -eq "SGX1FLC") -or (${OS_VERSION} -eq "WinServer2019"))
+    if ($LaunchConfiguration -eq "SGX1FLC")
     {
         # Please refer to Intel's Windows DCAP documentation for this registry setting: https://download.01.org/intel-sgx/dcap-1.2/windows/docs/Intel_SGX_DCAP_Windows_SW_Installation_Guide.pdf
         New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\sgx_lc_msr\Parameters" -Name "SGX_Launch_Config_Optin" -Value 1 -PropertyType DWORD -Force
@@ -666,17 +652,80 @@ function Install-NSIS {
                  -EnvironmentPath @($installDir, "${installDir}\Bin")
 }
 
+function Install-Chocolatey {
+        Set-ExecutionPolicy Bypass -Scope Process
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+}
+
+function Install-Dependencies {
+
+        $dependencies = @(
+                @{
+                        "name" = "7Zip"
+                        "package" = "7Zip"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Nuget"
+                        "package" = "nuget.commandline"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Python 3"
+                        "package" = "python3"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "PIP"
+                        "package" = "pip"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "OpenSSL"
+                        "package" = "openssl"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Git"
+                        "package" = "git"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Shellcheck"
+                        "package" = "shellcheck"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "NSIS"
+                        "package" = "nsis"
+                        "version" = "latest"
+                }
+        )
+
+        foreach($dependency in $dependencies) {
+                if ($dependency["version"] -eq "latest" -or $dependency["version"] -eq "") {
+                        & choco install $dependency["package"] -y
+                } else {
+                        & choco install $dependency["package"] --version=$dependency["version"] -y
+                }
+        }
+}
+
 try {
     Start-LocalPackagesDownload
 
-    Install-7Zip
+    Install-Chocolatey
+    & choco install 7Zip -y
     Install-Nuget
     Install-Python3
+    #Install-Chocolatey
+    #Install-Dependencies
     Install-VisualStudio
     Install-OpenSSL
     Install-LLVM
-    Install-Git
-    Install-Shellcheck
+    & choco install git -y
+    & choco install shellcheck -y
     Install-NSIS
 
     if (($LaunchConfiguration -ne "SGX1FLC-NoDriver") -and ($LaunchConfiguration -ne "SGX1-NoDriver"))
@@ -686,7 +735,6 @@ try {
 
     Install-DCAP-Dependencies
     Install-VCRuntime
-
 
     # The Open Enclave source directory tree might have file paths exceeding
     # the default limit of 260 characters (especially the 3rd party libraries
