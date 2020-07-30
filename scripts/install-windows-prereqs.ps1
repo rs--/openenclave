@@ -666,18 +666,76 @@ function Install-NSIS {
                  -EnvironmentPath @($installDir, "${installDir}\Bin")
 }
 
+function Install-Chocolatey {
+        Set-ExecutionPolicy Bypass -Scope Process
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+}
+
+function Install-Dependencies {
+
+        $dependencies = @(
+                @{
+                        "name" = "7Zip"
+                        "package" = "7Zip"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Nuget"
+                        "package" = "nuget.commandline"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Python 3"
+                        "package" = "python3"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "PIP"
+                        "package" = "pip"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "OpenSSL"
+                        "package" = "openssl"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "LLVM"
+                        "package" = "llvm"
+                        "version" = "7.0.1"
+                },
+                @{
+                        "name" = "Git"
+                        "package" = "git"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "Shellcheck"
+                        "package" = "shellcheck"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "NSIS"
+                        "package" = "nsis"
+                        "version" = "latest"
+                }
+        )
+
+        foreach($dependency in $dependencies) {
+                if ($dependency["version"] -eq "latest" -or $dependency["version"] -eq "") {
+                        & choco install $dependency["package"] -y
+                } else {
+                        & choco install $dependency["package"] --version=$dependency["version"] -y
+                }
+        }
+}
+
 try {
     Start-LocalPackagesDownload
-
-    Install-7Zip
-    Install-Nuget
-    Install-Python3
+    Install-Chocolatey
+    Install-Dependencies
     Install-VisualStudio
-    Install-OpenSSL
-    Install-LLVM
-    Install-Git
-    Install-Shellcheck
-    Install-NSIS
 
     if (($LaunchConfiguration -ne "SGX1FLC-NoDriver") -and ($LaunchConfiguration -ne "SGX1-NoDriver"))
     {
