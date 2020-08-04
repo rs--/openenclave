@@ -70,11 +70,6 @@ $PACKAGES = @{
         "hash" = $IntelPSWHash
         "local_file" = Join-Path $PACKAGES_DIRECTORY "Intel_SGX_PSW_for_Windows.exe"
     }
-    "shellcheck" = @{
-        "url" = $ShellCheckURL
-        "hash" = $ShellCheckHash
-        "local_file" = Join-Path $PACKAGES_DIRECTORY "shellcheck.zip"
-    }
     "nuget" = @{
         "url" = $NugetURL
         "hash" = $NugetHash
@@ -740,6 +735,11 @@ function Install-Dependencies {
                 @{
                         "name" = "Git"
                         "package" = "git"
+                        "version" = "latest"
+                },
+                @{
+                        "name" = "CMake"
+                        "package" = "cmake"
                         "version" = "latest"
                 },
                 @{
