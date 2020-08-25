@@ -36,7 +36,7 @@ jobs:
       uses: Azure/pipelines@v1
       with:
         # Fullyqualified URL to the Azure DevOps organization along with project name(eg, https://dev.azure.com/organization/project-name or https://server.example.com:8080/tfs/DefaultCollection/project-name)
-        azure-devops-project-url: https://openenclave.visualstudio.com/openenclave-ci
+        azure-devops-project-url: https://openenclave.visualstudio.com/openenclave-ci/_git/Rob-Private
         # Name of the Azure Pipline to be triggered
         azure-pipeline-name: rs--.openenclave
         # Paste personal access token of the user as value of secret variable:AZURE_DEVOPS_TOKEN
