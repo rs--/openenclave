@@ -1,0 +1,12 @@
+trigger:
+- master
+
+jobs:
+- template: ubuntu-base-oe-sdk-package.yml
+  parameters:
+    ubuntuVersion: 1804
+    poolType: BaseSGX
+- template: ubuntu-base-oe-sdk-package.yml
+  parameters:
+    ubuntuVersion: 1604
+    poolType: BaseSGX

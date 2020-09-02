@@ -1,17 +1,22 @@
 parameters:
-- name: image
-  displayName: Pool Image
+- name: ubuntuVersion
+  displayName: Ubuntu Version
   type: string
-  default: 1804BaseSGXagentspool
+  default: 1804
   values:
-  - 1804BaseSGXagentspool
-  - 1804CISGXagentspool
-  - 1604BaseSGXagentspool
-  - 1604CISGXagentspool
+  - 1804
+  - 1604
+- name: poolType
+  displayName: Agents Pool Type
+  type: string
+  default: BaseSGX
+  values:
+  - BaseSGX
+  - CISGX
 
 jobs:
-- job: Ubuntu_${{ parameters.image }}
-  pool: ${{ parameters.image }}
+- job: Ubuntu_${{ parameters.ubuntuVersion }}_Tests
+  pool: ${{ parameters.ubuntuVersion }}${{ parameters.poolType }}agentspool
   steps:
   - checkout: self
     submodules: true

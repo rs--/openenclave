@@ -13,42 +13,40 @@ parameters:
   values:
   - BaseSGX
   - CISGX
+- name: hostVerifyPackage
+  displayName: Build Host Verify Package
+  type: boolean
+  default: false
 
-variables:
-- name: debianPackage
+steps:
+- checkout: self
+  submodules: true
+  persistCredentials: true
 
-jobs:
-- job: Ubuntu_${{ parameters.ubuntuVersion }}_Packaging
-  pool: ${{ parameters.ubuntuVersion }}${{ parameters.poolType }}agentspool
-  steps:
-  - checkout: self
-    submodules: true
-    persistCredentials: true
+- task: Bash@3
+  displayName: "Install and Run Ansible Playbook"
+  inputs:
+    targetType: 'inline'
+    script: |
+        sudo ./install-ansible.sh
+        sudo ansible-playbook oe-contributors-acc-setup.yml
+    workingDirectory: 'scripts/ansible'
 
-  - task: Bash@3
-    displayName: "Install and Run Ansible Playbook"
-    inputs:
-      targetType: 'inline'
-      script: |
-          sudo ./install-ansible.sh
-          sudo ansible-playbook oe-contributors-acc-setup.yml
-      workingDirectory: 'scripts/ansible'
+- task: Bash@3
+  displayName: "Build and Package OE SDK"
+  inputs:
+    targetType: 'inline'
+    script: |
+        mkdir build && \
+        cd build && \
+        cmake -DCMAKE_INSTALL_PREFIX=/opt/openenclave .. && \
+        cpack -G DEB && \
+        PACKAGE=$(ls *.deb) && \
+        echo "##vso[task.setvariable variable=debianPackage]$PACKAGE"
 
-  - task: Bash@3
-    displayName: "Build and Package OE SDK"
-    inputs:
-      targetType: 'inline'
-      script: |
-          mkdir build && \
-          cd build && \
-          cmake -DCMAKE_INSTALL_PREFIX=/opt/openenclave .. && \
-          cpack -G DEB && \
-          PACKAGE=$(ls *.deb) && \
-          echo "##vso[task.setvariable variable=debianPackage]$PACKAGE"
-
-  - task: PublishPipelineArtifact@1
-    displayName: "Publish Debian Package"
-    inputs:
-      targetPath: '$(Pipeline.Workspace)/s/build/$(debianPackage)'
-      artifact: 'UBUNTU_${{ parameters.ubuntuVersion }}_$(debianPackage)'
-      publishLocation: 'pipeline'
+- task: PublishPipelineArtifact@1
+  displayName: "Publish Debian Package"
+  inputs:
+    targetPath: '$(Pipeline.Workspace)/s/build/$(debianPackage)'
+    artifact: 'UBUNTU_${{ parameters.ubuntuVersion }}_$(debianPackage)'
+    artifactType: 'pipeline'

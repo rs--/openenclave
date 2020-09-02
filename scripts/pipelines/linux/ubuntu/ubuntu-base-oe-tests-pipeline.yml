@@ -4,7 +4,9 @@ trigger:
 jobs:
 - template: ubuntu-base-oe-sdk-tests.yml
   parameters:
-    image: 1804BaseSGXagentspool
+    ubuntuVersion: 1804
+    poolType: BaseSGX
 - template: ubuntu-base-oe-sdk-tests.yml
   parameters:
-    image: 1604BaseSGXagentspool
+    ubuntuVersion: 1604
+    poolType: BaseSGX
