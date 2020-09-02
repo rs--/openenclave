@@ -1,0 +1,54 @@
+parameters:
+- name: ubuntuVersion
+  displayName: Ubuntu Version
+  type: string
+  default: 1804
+  values:
+  - 1804
+  - 1604
+- name: poolType
+  displayName: Agents Pool Type
+  type: string
+  default: BaseSGX
+  values:
+  - BaseSGX
+  - CISGX
+
+variables:
+- name: debianPackage
+
+jobs:
+- job: Ubuntu_${{ parameters.ubuntuVersion }}_Packaging
+  pool: ${{ parameters.ubuntuVersion }}${{ parameters.poolType }}agentspool
+  steps:
+  - checkout: self
+    submodules: true
+    persistCredentials: true
+
+  - task: Bash@3
+    displayName: "Install and Run Ansible Playbook"
+    inputs:
+      targetType: 'inline'
+      script: |
+          sudo ./install-ansible.sh
+          sudo ansible-playbook oe-contributors-acc-setup.yml
+      workingDirectory: 'scripts/ansible'
+
+  - task: Bash@3
+    displayName: "Build and Package OE SDK"
+    inputs:
+      targetType: 'inline'
+      script: |
+          mkdir build && \
+          cd build && \
+          cmake -DCMAKE_INSTALL_PREFIX=/opt/openenclave .. && \
+          cpack -G DEB && \
+          PACKAGE=$(ls *.deb) && \
+          echo "##vso[task.setvariable variable=debianPackage]$PACKAGE"
+
+  - task: PublishPipelineArtifact@1
+    displayName: "Publish Debian Package"
+    inputs:
+      targetPath: '$(Pipeline.Workspace)/s/build/$(debianPackage)'
+      artifact: 'UBUNTU_${{ parameters.ubuntuVersion }}_$(debianPackage)'
+      publishLocation: 'pipeline'
