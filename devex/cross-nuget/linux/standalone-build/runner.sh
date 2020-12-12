@@ -3,9 +3,16 @@
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License.
 
-OS_CODENAME=$('cat /etc/os-release | grep UBUNTU_CODENAME | cut -d= -f2 || echo "$OS_CODENAME"')
-if [[ $OS_CODENAME == "" ]]; then
-    OS_CODENAME="xenial"
+echo "Override OS_CODENAME: $OS_CODENAME, OE_SDK_PATH: $OE_SDK_PATH"
+
+OS_CODENAME="$OS_CODENAME"
+if [ -z "$OS_CODENAME" ]; then
+  echo "OS_CODENAME override not given, attempting to find OS"
+  OS_CODENAME=$('find /etc/os-release 2>/dev/null && cat /etc/os-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2')
+fi
+if [ -z "$OS_CODENAME" ]; then
+  echo "OS_CODENAME unavailable"
+  exit 1
 fi
 
 # OP-TEE Build Output Folders
@@ -44,6 +51,8 @@ if [ -z "$OE_SDK_PATH" ]; then
   OE_SDK_PATH="$PWD/sdk"
 fi
 OPTEE_PATH="$OE_SDK_PATH/3rdparty/optee/optee_os"
+
+echo "Build settings OS_CODENAME: $OS_CODENAME, OE_SDK_PATH: $OE_SDK_PATH, OPTEE_PATH: $OPTEE_PATH, PWD: $PWD"
 
 ## ========================================
 ## Build OP-TEE
