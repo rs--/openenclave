@@ -3,7 +3,7 @@
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License.
 
-OS_CODENAME=$('cat /etc/os-release | grep UBUNTU_CODENAME | cut -d= -f2')
+OS_CODENAME=$('cat /etc/os-release | grep UBUNTU_CODENAME | cut -d= -f2 || echo "$OS_CODENAME"')
 if [[ $OS_CODENAME == "" ]]; then
     OS_CODENAME="xenial"
 fi

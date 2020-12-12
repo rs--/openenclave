@@ -3,7 +3,7 @@
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License.
 
-OS_CODENAME=$('cat /etc/os-release | grep UBUNTU_CODENAME | cut -d= -f2')
+OS_CODENAME=$('cat /etc/os-release | grep UBUNTU_CODENAME | cut -d= -f2 || echo "$OS_CODENAME"')
 if [[ $OS_CODENAME == "" ]]; then
     OS_CODENAME="xenial"
 fi
@@ -40,7 +40,9 @@ mkdir -p "$SDK_RELEASE_OPTEE_QEMU_ARMV8_OUT_PATH"
 mkdir -p "$SDK_RELEASE_OPTEE_GRAPEBOARD_OUT_PATH"
 
 # Source Paths
-OE_SDK_PATH="$PWD/sdk"
+if [ -z "$OE_SDK_PATH" ]; then
+  OE_SDK_PATH="$PWD/sdk"
+fi
 OPTEE_PATH="$OE_SDK_PATH/3rdparty/optee/optee_os"
 
 ## ========================================
