@@ -3,7 +3,7 @@
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License.
 
-OS_CODENAME=$('cat /etc/os-release | grep UBUNTU_CODENAME | cut -d= -f2 || echo "$OS_CODENAME"')
+OS_CODENAME=$OS_CODENAME
 if [[ $OS_CODENAME == "" ]]; then
     OS_CODENAME="xenial"
 fi
@@ -19,8 +19,8 @@ function copy-includes {
     BUILD_TYPE=$4
     PLATFORM_VERSION=$5
 
-    SRC_BASE=$PWD/build/$OS_CODENAME/sdk/$PLATFORM/$PLATFORM_VERSION/$SUBPLATOFRM/$BUILD_TYPE/expand/opt/openenclave
-    DST_BASE=$PWD/pack/build/native/linux/$OS_CODENAME/$PLATFORM/$SUBPLATOFRM/$BUILD_TYPE
+    SRC_BASE=$BUILD_PATH/$OS_CODENAME/sdk/$PLATFORM/$PLATFORM_VERSION/$SUBPLATOFRM/$BUILD_TYPE/expand/opt/openenclave
+    DST_BASE=$PACK_PATH/build/native/linux/$OS_CODENAME/$PLATFORM/$SUBPLATOFRM/$BUILD_TYPE
 
     mkdir -p "$DST_BASE"
     cp -r "$SRC_BASE/include" "$DST_BASE/"
@@ -32,8 +32,8 @@ function copy-sgx-libs {
     BUILD_TYPE=$3
     CLANG_VERSION=$4
 
-    SRC_BASE=$PWD/build/$OS_CODENAME/sdk/sgx/$SGX_PLATFORM/$BUILD_TYPE/expand/opt/openenclave
-    DST_BASE=$PWD/pack/lib/native/linux/$OS_CODENAME/sgx/$SGX_PLATFORM/$BUILD_TYPE
+    SRC_BASE=$BUILD_PATH/$OS_CODENAME/sdk/sgx/$SGX_PLATFORM/$BUILD_TYPE/expand/opt/openenclave
+    DST_BASE=$PACK_PATH/lib/native/linux/$OS_CODENAME/sgx/$SGX_PLATFORM/$BUILD_TYPE
 
     mkdir -p "$DST_BASE/cmake"
     mkdir -p "$DST_BASE/debugger"
@@ -52,15 +52,15 @@ function copy-optee-libs {
     BUILD_TYPE=$3
     GCC_VERSION=$4
 
-    SRC_BASE=$PWD/build/$OS_CODENAME/sdk/optee/3.6.0/$OPTEE_PLATFORM/$BUILD_TYPE/expand/opt/openenclave
-    DST_BASE=$PWD/pack/lib/native/linux/$OS_CODENAME/optee/v3.6.0/$OPTEE_PLATFORM/$BUILD_TYPE
+    SRC_BASE=$BUILD_PATH/$OS_CODENAME/sdk/optee/3.6.0/$OPTEE_PLATFORM/$BUILD_TYPE/expand/opt/openenclave
+    DST_BASE=$PACK_PATH/lib/native/linux/$OS_CODENAME/optee/v3.6.0/$OPTEE_PLATFORM/$BUILD_TYPE
 
     mkdir -p "$DST_BASE/cmake"
     mkdir -p "$DST_BASE/devkit"
     mkdir -p "$DST_BASE/enclave/gcc-$GCC_VERSION"
     mkdir -p "$DST_BASE/host/gcc-$GCC_VERSION"
 
-    cp -r "$PWD/build/optee/3.6.0/$OPTEE_PLATFORM/debug/export-ta_arm64/*" "$DST_BASE/devkit/"
+    cp -r "$BUILD_PATH/optee/3.6.0/$OPTEE_PLATFORM/debug/export-ta_arm64/*" "$DST_BASE/devkit/"
 
     cp -r "$SRC_BASE/lib/openenclave/cmake/*" "$DST_BASE/cmake/"
     cp -r "$SRC_BASE/lib/openenclave/enclave/*" "$DST_BASE/enclave/gcc-$GCC_VERSION/"
@@ -72,8 +72,8 @@ function copy-sgx-tools {
     OS_CODENAME=$1
     SGX_PLATFORM=$2
 
-    SRC_BASE=$PWD/build/$OS_CODENAME/sdk/sgx/$SGX_PLATFORM/release/expand/opt/openenclave
-    DST_BASE=$PWD/pack/tools/linux/$OS_CODENAME/sgx/$SGX_PLATFORM
+    SRC_BASE=$BUILD_PATH/$OS_CODENAME/sdk/sgx/$SGX_PLATFORM/release/expand/opt/openenclave
+    DST_BASE=$PACK_PATH/tools/linux/$OS_CODENAME/sgx/$SGX_PLATFORM
 
     mkdir -p "$DST_BASE"
     cp -r "$SRC_BASE/bin/*" "$DST_BASE/"
@@ -82,9 +82,9 @@ function copy-sgx-tools {
 function copy-optee-tools {
     OS_CODENAME=$1
 
-    SRC_ARM64_BASE=$PWD/build/$OS_CODENAME/sdk/optee/3.6.0/vexpress-qemu_armv8a/release/expand/opt/openenclave
-    SRC_X64_BASE=$PWD/build/$OS_CODENAME/sdk/sgx/default/release/expand/opt/openenclave
-    DST_BASE=$PWD/pack/tools/linux/$OS_CODENAME/optee
+    SRC_ARM64_BASE=$BUILD_PATH/$OS_CODENAME/sdk/optee/3.6.0/vexpress-qemu_armv8a/release/expand/opt/openenclave
+    SRC_X64_BASE=$BUILD_PATH/$OS_CODENAME/sdk/sgx/default/release/expand/opt/openenclave
+    DST_BASE=$PACK_PATH/tools/linux/$OS_CODENAME/optee
 
     mkdir -p "$DST_BASE/arm64"
     mkdir -p "$DST_BASE/x64"
