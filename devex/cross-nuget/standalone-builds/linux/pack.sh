@@ -40,10 +40,10 @@ function copy-sgx-libs {
     mkdir -p "$DST_BASE/enclave/clang-$CLANG_VERSION"
     mkdir -p "$DST_BASE/host/clang-$CLANG_VERSION"
 
-    cp -r "$SRC_BASE/lib/openenclave/cmake/*" "$DST_BASE/cmake"
-    cp -r "$SRC_BASE/lib/openenclave/debugger/*" "$DST_BASE/debugger"
-    cp -r "$SRC_BASE/lib/openenclave/enclave/*" "$DST_BASE/enclave/clang-$CLANG_VERSION"
-    cp -r "$SRC_BASE/lib/openenclave/host/*" "$DST_BASE/host/clang-$CLANG_VERSION"
+    cp -r "$SRC_BASE"/lib/openenclave/cmake/* "$DST_BASE/cmake"
+    cp -r "$SRC_BASE"/lib/openenclave/debugger/* "$DST_BASE/debugger"
+    cp -r "$SRC_BASE"/lib/openenclave/enclave/* "$DST_BASE/enclave/clang-$CLANG_VERSION"
+    cp -r "$SRC_BASE"/lib/openenclave/host/* "$DST_BASE/host/clang-$CLANG_VERSION"
 }
 
 function copy-optee-libs {
@@ -60,12 +60,12 @@ function copy-optee-libs {
     mkdir -p "$DST_BASE/enclave/gcc-$GCC_VERSION"
     mkdir -p "$DST_BASE/host/gcc-$GCC_VERSION"
 
-    cp -r "$BUILD_PATH/optee/3.6.0/$OPTEE_PLATFORM/debug/export-ta_arm64/*" "$DST_BASE/devkit/"
+    cp -r "$BUILD_PATH"/optee/3.6.0/"$OPTEE_PLATFORM"/debug/export-ta_arm64/* "$DST_BASE/devkit/"
 
-    cp -r "$SRC_BASE/lib/openenclave/cmake/*" "$DST_BASE/cmake/"
-    cp -r "$SRC_BASE/lib/openenclave/enclave/*" "$DST_BASE/enclave/gcc-$GCC_VERSION/"
-    cp -r "$SRC_BASE/lib/openenclave/optee/libteec/*" "$DST_BASE/enclave/gcc-$GCC_VERSION/"
-    cp -r "$SRC_BASE/lib/openenclave/host/*" "$DST_BASE/host/gcc-$GCC_VERSION/"
+    cp -r "$SRC_BASE"/lib/openenclave/cmake/* "$DST_BASE/cmake/"
+    cp -r "$SRC_BASE"/lib/openenclave/enclave/* "$DST_BASE/enclave/gcc-$GCC_VERSION/"
+    cp -r "$SRC_BASE"/lib/openenclave/optee/libteec/* "$DST_BASE/enclave/gcc-$GCC_VERSION/"
+    cp -r "$SRC_BASE"/lib/openenclave/host/* "$DST_BASE/host/gcc-$GCC_VERSION/"
 }
 
 function copy-sgx-tools {
@@ -76,7 +76,7 @@ function copy-sgx-tools {
     DST_BASE=$PACK_PATH/tools/linux/$OS_CODENAME/sgx/$SGX_PLATFORM
 
     mkdir -p "$DST_BASE"
-    cp -r "$SRC_BASE/bin/*" "$DST_BASE/"
+    cp -r "$SRC_BASE"/bin/* "$DST_BASE/"
 }
 
 function copy-optee-tools {
@@ -89,8 +89,8 @@ function copy-optee-tools {
     mkdir -p "$DST_BASE/arm64"
     mkdir -p "$DST_BASE/x64"
 
-    cp -r "$SRC_ARM64_BASE/bin/oeedger8r" "$DST_BASE/arm64/"
-    cp -r "$SRC_X64_BASE/bin/oeedger8r" "$DST_BASE/x64/"
+    cp -r "$SRC_ARM64_BASE"/bin/oeedger8r "$DST_BASE/arm64/"
+    cp -r "$SRC_X64_BASE"/bin/oeedger8r "$DST_BASE/x64/"
 }
 
 # Copy libraries

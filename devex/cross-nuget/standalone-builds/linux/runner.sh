@@ -55,6 +55,46 @@ OPTEE_PATH="$OE_SDK_PATH/3rdparty/optee/optee_os"
 echo "Build settings OS_CODENAME: $OS_CODENAME, OE_SDK_PATH: $OE_SDK_PATH, OPTEE_PATH: $OPTEE_PATH, PWD: $PWD OPTEE_BUILD_PATH: $OPTEE_BUILD_PATH, BUILD PATH: $BUILD_PATH"
 
 ## ========================================
+## Build SDK (SGX)
+## ========================================
+
+# Build the SDK for Intel SGX Default Debug
+echo "Building: SDK/SGX/Default/Debug" >> runner."$OS_CODENAME"
+pushd "$SDK_DEBUG_SGX_DEFAULT_OUT_PATH" || exit 1
+cmake -G Ninja "$OE_SDK_PATH"                              \
+    -DLVI_MITIGATION=ControlFlow                           \
+    -DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin  \
+    -DCMAKE_BUILD_TYPE=Debug                               \
+    -DCMAKE_INSTALL_PREFIX:PATH='/opt/openenclave'         \
+    -DCPACK_GENERATOR=DEB || exit 1
+ninja package || exit 1
+
+mkdir expand
+pushd expand || exit 1
+7z x ../*.deb || exit 1
+tar xf data.tar || exit 1
+popd || exit 1
+popd || exit 1  # SDK Build Done
+
+# Build the SDK for Intel SGX Default Release
+echo "Building: SDK/SGX/Default/Release" >> runner."$OS_CODENAME"
+pushd "$SDK_RELEASE_SGX_DEFAULT_OUT_PATH" || exit 1
+cmake -G Ninja "$OE_SDK_PATH"                              \
+    -DLVI_MITIGATION=ControlFlow                           \
+    -DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin  \
+    -DCMAKE_BUILD_TYPE=Release                             \
+    -DCMAKE_INSTALL_PREFIX:PATH='/opt/openenclave'         \
+    -DCPACK_GENERATOR=DEB || exit 1
+ninja package || exit 1
+
+mkdir expand
+pushd expand || exit 1
+7z x ../*.deb || exit 1
+tar xf data.tar || exit 1
+popd || exit 1
+popd || exit 1  # SDK Build Done
+
+## ========================================
 ## Build SDK (OP-TEE)
 ## ========================================
 
