@@ -321,7 +321,8 @@ typedef struct _sgx_secinfo
 **==============================================================================
 */
 
-typedef union {
+typedef union
+{
     struct
     {
         uint32_t vector : 8;
@@ -491,7 +492,8 @@ typedef struct _sgx_tcs
     uint32_t gslimit;
 
     /* (72) reserved */
-    union {
+    union
+    {
         uint8_t reserved[4024];
 
         /* (72) Enclave's entry point (defaults to _start) */
