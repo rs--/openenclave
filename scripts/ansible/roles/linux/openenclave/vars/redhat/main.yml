@@ -28,6 +28,7 @@ yum_packages:
   - "libX11-devel"
   - "ncurses-devel"
   - "clang-8.0.1"
+  - "clang-10.0.1"
   - "gcc"
   - "gdb"
   - "git"
