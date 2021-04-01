@@ -67,4 +67,38 @@ def buildDockerImages() {
     }
 }
 
+def buildWindowsDockerImages() {
+    node(params.WINDOWS_AGENTS_LABEL) {
+        timeout(GLOBAL_TIMEOUT_MINUTES) {
+            stage("Checkout") {
+                cleanWs()
+                checkout scm
+            }
+            String buildArgs = oe.dockerBuildArgs("UID=\$(id -u)", "UNAME=\$(id -un)",
+                                                  "GID=\$(id -g)", "GNAME=\$(id -gn)")
+            stage("Build Windows Server 2019 Full Docker Image") {
+                oefull2019 = oe.dockerImage("oetools-full-ws2019:${DOCKER_TAG}", ".jenkins/infrastructure/dockerfiles/windows/Dockerfile.full", "")
+                puboefull2019 = oe.dockerImage("oeciteam/oetools-full-ws2019:${DOCKER_TAG}", ".jenkins/infrastructure/dockerfiles/windows/Dockerfile.full", "")
+            }
+            stage("Push to OE Docker Registry") {
+                docker.withRegistry(OETOOLS_REPO, OETOOLS_REPO_CREDENTIAL_ID) {
+                    oe.exec_with_retry { oefull2019.push() }
+                    if(TAG_LATEST == "true") {
+                        oe.exec_with_retry { oefull2019.push('latest') }
+                    }
+                }
+            }
+            stage("Push to OE Docker Hub Registry") {
+                docker.withRegistry('', OETOOLS_DOCKERHUB_REPO_CREDENTIAL_ID) {
+                    if(TAG_LATEST == "true") {
+                        oe.exec_with_retry { puboefull2019.push() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 buildDockerImages()
+buildWindowsDockerImages()

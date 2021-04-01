@@ -1,0 +1,29 @@
+# Copyright (c) Open Enclave SDK contributors.
+# Licensed under the MIT License.
+
+---
+- hosts: windows-agents
+  any_errors_fatal: true
+  become_method: runas
+  tasks:
+     # One way to ensure the system is reliable just after a reboot, is to set WinRM to a delayed startup
+    - name: Ensure WinRM starts when the system has settled and is ready to work reliably
+      win_service:
+        name: WinRM
+        start_mode: delayed
+
+    - name: Install all security, critical, and rollup updates without a scheduled task
+      win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+          - UpdateRollups
+        reboot: yes
+        reboot_timeout: 3600
+
+    - name: OE setup | Reboot the node
+      win_reboot:
+
+    - import_role:
+        name: windows/openenclave
+        tasks_from: validation.yml

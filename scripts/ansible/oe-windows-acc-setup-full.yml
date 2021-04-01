@@ -9,5 +9,8 @@
     - name: Install Windows Pre-Requisites
       import_tasks: oe-windows-acc-setup-prereqs.yml
 
+    - name: Install Docker
+      script: ../install-windows-docker.ps1
+
     - name: Windows Post Installation
       import_tasks: oe-windows-acc-setup-post-install.yml

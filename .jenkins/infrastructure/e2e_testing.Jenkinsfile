@@ -35,16 +35,6 @@ println("IMAGE_ID: ${IMAGE_ID}")
 println("IMAGE_VERSION: ${IMAGE_VERSION}")
 println("DOCKER_TAG: ${DOCKER_TAG}")
 
-stage("Build Docker Images") {
-    build job: '/CI-CD_Infrastructure/OpenEnclave-Build-Docker-Images',
-          parameters: [string(name: 'REPOSITORY_NAME', value: env.REPOSITORY),
-                       string(name: 'BRANCH_NAME', value: env.BRANCH),
-                       string(name: 'DOCKER_TAG', value: DOCKER_TAG),
-                       string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL),
-                       string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
-                       booleanParam(name: 'TAG_LATEST',value: false)]
-}
-
 stage("Build Jenkins Agents images") {
     build job: '/CI-CD_Infrastructure/OpenEnclave-Build-Azure-Managed-Images',
           parameters: [string(name: 'REPOSITORY_NAME', value: env.REPOSITORY),
@@ -57,6 +47,17 @@ stage("Build Jenkins Agents images") {
                        string(name: 'IMAGE_ID', value: IMAGE_ID),
                        string(name: 'DOCKER_TAG', value: DOCKER_TAG),
                        string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL)]
+}
+
+stage("Build Docker Images") {
+    build job: '/CI-CD_Infrastructure/OpenEnclave-Build-Docker-Images',
+          parameters: [string(name: 'REPOSITORY_NAME', value: env.REPOSITORY),
+                       string(name: 'BRANCH_NAME', value: env.BRANCH),
+                       string(name: 'DOCKER_TAG', value: DOCKER_TAG),
+                       string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL),
+                       string(name: 'WINDOWS_AGENTS_LABEL', value: env.WINDOWS_IMAGES_BUILD_LABEL),
+                       string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
+                       booleanParam(name: 'TAG_LATEST',value: false)]
 }
 
 stage("Run tests on new Agents") {

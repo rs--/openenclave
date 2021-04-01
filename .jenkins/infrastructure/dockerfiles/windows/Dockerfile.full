@@ -1,0 +1,23 @@
+# Copyright (c) Open Enclave SDK contributors.
+# Licensed under the MIT License.
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2019
+
+ARG UNAME=jenkins
+ARG GNAME=jenkins
+ARG UID=1000
+ARG GID=1000
+
+# Run Ansible
+COPY ./ /oe
+RUN /oe/scripts/install-windows-prereqs.ps1 -InstallPath C:\Downloads\prereqs\nuget -LaunchConfiguration SGX1FLC-NoIntelDrivers -DCAPClientType Azure
+RUN rm -rf /oe
+
+# Configure Git in target image to enable merge/rebase actions.
+RUN git config --global user.email "oeciteam@microsoft.com"
+RUN git config --global user.name "OE CI Team"
+
+# Create user
+RUN groupadd --gid ${GID} ${GNAME}
+RUN useradd --create-home --uid ${UID} --gid ${GID} --shell /bin/bash ${UNAME}
+RUN echo "${UNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
