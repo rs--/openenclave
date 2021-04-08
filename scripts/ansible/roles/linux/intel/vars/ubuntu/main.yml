@@ -12,7 +12,6 @@ intel_sgx_packages:
 
 intel_dcap_packages:
   - "libsgx-dcap-ql"
-  - "libsgx-dcap-ql-dev"
   - "libsgx-urts"
 
 packages_validation_distribution_files:

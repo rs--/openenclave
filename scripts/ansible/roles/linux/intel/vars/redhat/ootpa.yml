@@ -18,5 +18,4 @@ intel_dcap_packages_directory: "/tmp/sgx_linux_dcap_packages"
 intel_dcap_packages:
   - "libsgx-ae-qve"
   - "libsgx-dcap-ql"
-  - "libsgx-dcap-ql-devel"
   - "libsgx-urts"
