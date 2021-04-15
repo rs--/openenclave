@@ -41,6 +41,7 @@ stage("Build Docker Images") {
                        string(name: 'BRANCH_NAME', value: env.BRANCH),
                        string(name: 'DOCKER_TAG', value: DOCKER_TAG),
                        string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL),
+                       string(name: 'WINDOWS_AGENTS_LABEL', value: env.WINDOWS_IMAGES_BUILD_LABEL),
                        string(name: 'OECI_LIB_VERSION', value: OECI_LIB_VERSION),
                        booleanParam(name: 'TAG_LATEST',value: false)]
 }
@@ -55,6 +56,7 @@ stage("Build Jenkins Agents images") {
                        string(name: 'GALLERY_NAME', value: env.E2E_IMAGES_GALLERY_NAME),
                        string(name: 'REPLICATION_REGIONS', value: env.REPLICATION_REGIONS),
                        string(name: 'IMAGE_ID', value: IMAGE_ID),
+                       string(name: 'IMAGE_VERSION', value: IMAGE_VERSION),
                        string(name: 'DOCKER_TAG', value: DOCKER_TAG),
                        string(name: 'AGENTS_LABEL', value: env.IMAGES_BUILD_LABEL)]
 }
