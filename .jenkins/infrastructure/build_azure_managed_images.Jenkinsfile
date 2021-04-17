@@ -26,21 +26,18 @@ def get_image_version() {
             now.format(DateTimeFormatter.ofPattern("dd")))
 }
 
-def get_image_id() {
-    if (params.IMAGE_ID) {
-        return params.IMAGE_ID
-    }
-    checkout scm
+def get_commit_id() {
     def last_commit_id = sh(script: "git rev-parse --short HEAD", returnStdout: true).tokenize().last()
-    return (get_image_version() + "-" + last_commit_id)
+    return last_commit_id
 }
 
-
+IMAGE_ID = ""
+IMAGE_VERSION = ""
 
 def buildLinuxManagedImage(String os_type, String version) {
-    node(params.AGENTS_LABEL) {
-        def managed_image_name_id = get_image_id()
-        def gallery_image_version = get_image_version()
+    stage("${os_type} ${version}") {
+        def managed_image_name_id = IMAGE_ID
+        def gallery_image_version = IMAGE_VERSION
         withEnv(["DOCKER_REGISTRY=${OETOOLS_REPO}",
             "MANAGED_IMAGE_NAME_ID=${managed_image_name_id}",
             "GALLERY_IMAGE_VERSION=${gallery_image_version}"]) {
@@ -70,6 +67,7 @@ def buildLinuxManagedImage(String os_type, String version) {
                         def cmd = ("packer build -force " +
                                     "-var-file=${WORKSPACE}/.jenkins/infrastructure/provision/templates/packer/azure_managed_image/${os_type}-${version}-variables.json " +
                                     "${WORKSPACE}/.jenkins/infrastructure/provision/templates/packer/azure_managed_image/packer-${os_type}.json")
+                        checkout scm
                         oe.exec_with_retry(10, 60) {
                             oe.azureEnvironment(cmd, params.OE_DEPLOY_IMAGE)
                         }
@@ -81,7 +79,7 @@ def buildLinuxManagedImage(String os_type, String version) {
 }
 
 def buildWindowsManagedImage(String os_series, String img_name_suffix, String launch_configuration) {
-    node(params.AGENTS_LABEL) {
+    stage("${os_series} ${launch_configuration}") {
         withCredentials([usernamePassword(credentialsId: JENKINS_USER_CREDS_ID,
                                     usernameVariable: "JENKINS_USER_NAME",
                                     passwordVariable: "JENKINS_USER_PASSWORD")]) {
@@ -89,8 +87,8 @@ def buildWindowsManagedImage(String os_series, String img_name_suffix, String la
                 az login --service-principal -u \$SERVICE_PRINCIPAL_ID -p \$SERVICE_PRINCIPAL_PASSWORD --tenant \$TENANT_ID
                 az account set -s \$SUBSCRIPTION_ID
             """
-            def managed_image_name_id = get_image_id()
-            def gallery_image_version = get_image_version()
+            def managed_image_name_id = IMAGE_ID
+            def gallery_image_version = IMAGE_VERSION
             def vm_rg_name = "build-${managed_image_name_id}-${img_name_suffix}-${BUILD_NUMBER}"
             def vm_name = "${os_series}-vm"
             def jenkins_rg_name = params.JENKINS_RESOURCE_GROUP
@@ -164,8 +162,6 @@ def buildWindowsManagedImage(String os_series, String img_name_suffix, String la
                             --command-id RunPowerShellScript \
                             --scripts @${WORKSPACE}/.jenkins/infrastructure/provision/run-sysprep.ps1
                     """
-                    cleanWs()
-                    checkout scm
                     oe.exec_with_retry(10, 30) {
                         oe.azureEnvironment(deploy_script, params.OE_DEPLOY_IMAGE)
                     }
@@ -259,9 +255,23 @@ def buildWindowsManagedImage(String os_series, String img_name_suffix, String la
     }
 }
 
-parallel "Build Ubuntu 18.04"              : { buildLinuxManagedImage("ubuntu", "18.04") },
-         "Build Ubuntu 20.04"              : { buildLinuxManagedImage("ubuntu", "20.04") },
-         "Build RHEL 8"                    : { buildLinuxManagedImage("rhel", "8") },
-         "Build Windows 2019 nonSGX"       : { buildWindowsManagedImage("win2019", "ws2019-nonSGX", "SGX1FLC-NoIntelDrivers") },
-         "Build Windows 2019 SGX1"         : { buildWindowsManagedImage("win2019", "ws2019-SGX", "SGX1") },
-         "Build Windows 2019 SGX1FLC DCAP" : { buildWindowsManagedImage("win2019", "ws2019-SGX-DCAP", "SGX1FLC") }
+node(params.AGENTS_LABEL) {
+    stage("Initialize Build Configurations") {
+
+        checkout scm
+
+        commit_id = get_commit_id()
+        version = get_image_version()
+
+        IMAGE_VERSION = version
+        IMAGE_ID = params.IMAGE_ID ?: "${version}-${commit_id}"
+    }
+    stage("Build Agents") {
+        parallel "Build Ubuntu 18.04"              : { buildLinuxManagedImage("ubuntu", "18.04") },
+                 "Build Ubuntu 20.04"              : { buildLinuxManagedImage("ubuntu", "20.04") },
+                 "Build RHEL 8"                    : { buildLinuxManagedImage("rhel", "8") },
+                 "Build Windows 2019 nonSGX"       : { buildWindowsManagedImage("win2019", "ws2019-nonSGX", "SGX1FLC-NoIntelDrivers") },
+                 "Build Windows 2019 SGX1"         : { buildWindowsManagedImage("win2019", "ws2019-SGX", "SGX1") },
+                 "Build Windows 2019 SGX1FLC DCAP" : { buildWindowsManagedImage("win2019", "ws2019-SGX-DCAP", "SGX1FLC") }
+    }
+}
