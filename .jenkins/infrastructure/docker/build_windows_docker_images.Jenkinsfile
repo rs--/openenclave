@@ -30,6 +30,11 @@ def buildWindowsDockerContainers() {
                     }
                 }
             }
+            stage("Test Windows Server 2019 Docker Image") {
+                docker.withRegistry(INTERNAL_REPO, INTERNAL_REPO_CREDS) {
+                    test2019 = oe.dockerImage("test2019", ".jenkins/infrastructure/docker/dockerfiles/windows/Dockerfile.test", "--build-arg TAG=${DOCKER_TAG}")
+                }
+            }
             stage("Push to OE Docker Hub Registry") {
                 docker.withRegistry('', DOCKERHUB_REPO_CREDS) {
                     if(TAG_LATEST == "true") {
