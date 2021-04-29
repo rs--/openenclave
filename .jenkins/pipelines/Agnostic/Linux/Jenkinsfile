@@ -84,7 +84,7 @@ def checkCI() {
                 checkout scm
                 // At the moment, the check-ci script assumes that it's executed from the
                 // root source code directory.
-                oe.ContainerRun("oetools-18.04:${DOCKER_TAG}", "clang-10", "cd ${WORKSPACE} && ./scripts/check-ci", "--cap-add=SYS_PTRACE")
+                oe.ContainerRun("oetools-18.04:${DOCKER_TAG}", "clang-10", "cd ${WORKSPACE} && ./scripts/check-ci --userExcludeDirs=3rdparty", "--cap-add=SYS_PTRACE")
             }
         }
     }

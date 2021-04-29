@@ -19,6 +19,7 @@ apt_packages:
   - "gdb"
   - "libssl-dev"
   - "openssl"
+  - "python"
   - "pkg-config"
   - "apt-transport-https"
   - "autoconf"
