@@ -73,6 +73,18 @@ def windowsCrossCompile(String label, String build_type, String lvi_mitigation =
     }
 }
 
+def windowsContainerPackageTest(String dockerTag, String compiler, String label, String build_type, String lvi_mitigation = 'None', String OE_SIMULATION = "0", String lvi_mitigation_skip_tests = 'OFF', List extra_cmake_args = []) {
+    def node_label = AGENTS_LABELS["${label}"]
+
+    stage("Windows ${label} Container Test") {
+        node("ws2019-docker") {
+            timeout(GLOBAL_TIMEOUT_MINUTES) {
+                oe.WinCompilePackageContainerTest(dockerTag, compiler, "build/X64-${build_type}", build_type, 'OFF', CTEST_TIMEOUT_SECONDS, lvi_mitigation, lvi_mitigation_skip_tests, extra_cmake_args)
+            }
+        }
+    }
+}
+
 properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '90',
                                       artifactNumToKeepStr: '180',
                                       daysToKeepStr: '90',
@@ -81,7 +93,9 @@ properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '90',
 
 try{
     oe.emailJobStatus('STARTED')
-    def testing_stages = [:]
+    def testing_stages = [
+        "Win2019 Container clang-8": { windowsContainerPackageTest(DOCKER_TAG, 'clang-8', 'acc-win2019', 'Release', 'ControlFlow') }
+    ]
     if(FULL_TEST_SUITE == "true") {
         stage("Full Test Suite") {
             testing_stages += [
@@ -105,13 +119,6 @@ try{
         }
     } else {
         stage("PR Testing") {
-            testing_stages += [
-                "Win2019 Ubuntu1804 clang-8 Release Linux-Elf-build LVI":          { windowsLinuxElfBuild('acc-win2019-dcap', '18.04', 'clang-8', 'Release', 'ControlFlow', 'ON') },
-                "Win2019 Sim Release Cross Compile LVI ":                          { windowsCrossCompile('acc-win2019', 'Release', 'ControlFlow', '1', 'ON') },
-                "Win2019 Debug Cross Compile DCAP LVI":                            { windowsCrossCompile('acc-win2019', 'Debug', 'ControlFlow', '0', 'ON') },
-                "Win2019 Release Cross Compile DCAP LVI FULL Tests":               { windowsCrossCompile('acc-win2019', 'Release', 'ControlFlow') },
-                "Win2019 Release Cross Compile DCAP LVI FULL Tests snmalloc":      { windowsCrossCompile('acc-win2019', 'Release', 'ControlFlow', '0', 'OFF', ['-DUSE_SNMALLOC=ON']) }
-            ]
             parallel testing_stages
         }
     }
