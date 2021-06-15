@@ -18,8 +18,9 @@ AGENTS_LABELS = [
     "acc-ubuntu-18.04-vanilla": env.UBUNTU_VANILLA_1804_CUSTOM_LABEL ?: "vanilla-ubuntu-1804"
 ]
 
-def CmakeCommand(String build_type = "RelWithDebInfo", String code_coverage = "OFF", String debug_malloc = "ON", String lvi_args="", String cmake_args = "") {
+def BuildCommand(String build_type = "RelWithDebInfo", String code_coverage = "OFF", String debug_malloc = "ON", String lvi_args="", String cmake_args = "") {
     def cmake = """
+        echo "Running Build Command"
         cd ${WORKSPACE}
         cmake ${WORKSPACE}                                          \
            -G Ninja                                                 \
@@ -31,29 +32,36 @@ def CmakeCommand(String build_type = "RelWithDebInfo", String code_coverage = "O
            ${lvi_args}                                              \
            ${cmake_args}                                            \
            -Wdev
+        ninja -v
     """
+    println("CI Command: Build\n"+cmake)
     return cmake
 }
 
 def TestCommand() {
     def buildAndTest = """
-        ninja -v
+        echo "Running Test Command"
+        cd ${WORKSPACE}
         ctest --output-on-failure --timeout ${CTEST_TIMEOUT_SECONDS}
     """
+    println("CI Command: Test Command\n"+buildAndTest)
     return buildAndTest
 }
 
-def BuildAndInstallCommand() {
+def InstallBuildCommand() {
     def localPackage = """
-        ninja -v
-        cpack -G DEB
+        echo "Running Install Build Command"
+        cd ${WORKSPACE}
+        cpack
         sudo ninja -v install
     """
+    println("CI Command: Install Build\n"+localPackage)
     return localPackage
 }
 
 def InstallReleaseCommand() {
     def install = """
+        echo "Running Install Release Command"
         echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
         wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
 
@@ -66,11 +74,13 @@ def InstallReleaseCommand() {
         sudo apt update
         sudo apt install -y open-enclave
     """
+    println("CI Command: Install Release\n"+install)
     return install
 }
 
 def TestSamplesCommand() {
     def samples = """
+        echo "Running Test Samples Command"
         cp -r /opt/openenclave/share/openenclave/samples ~/
         cd ~/samples
         source /opt/openenclave/share/openenclave/openenclaverc
@@ -86,6 +96,7 @@ def TestSamplesCommand() {
             fi
         done
     """
+    println("CI Command: Test Samples\n"+samples)
     return samples
 }
 
@@ -95,10 +106,10 @@ def ACCCodeCoverageTest(String label, String compiler, String build_type) {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
                 cleanWs()
                 checkout scm
-                def cmakeCommand = CmakeCommand(build_type)
+                def buildCommand = BuildCommand(build_type)
                 def testCommand = TestCommand()
                 def task = """
-                           ${cmakeCommand}
+                           ${buildCommand}
                            ${testCommand}
                            ninja code_coverage
                            """
@@ -142,10 +153,10 @@ def ACCTest(String label, String compiler, String build_type, List extra_cmake_a
                         done
                         """
                 }
-                def cmakeCommand = CmakeCommand(build_type,"OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def buildCommand = BuildCommand(build_type,"OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
                 def testCommand = TestCommand()
                 def task = """
-                           ${cmakeCommand}
+                           ${buildCommand}
                            ${testCommand}
                            """
                 withEnv(test_env) {
@@ -156,7 +167,6 @@ def ACCTest(String label, String compiler, String build_type, List extra_cmake_a
     }
 }
 
-
 def ACCUpgradeTest(String label, String version, List extra_cmake_args = []) {
     stage("${label} Container ${version} RelWithDebInfo, extra_cmake_args: ${extra_cmake_args}") {
         node("${label}") {
@@ -165,12 +175,10 @@ def ACCUpgradeTest(String label, String version, List extra_cmake_args = []) {
                 checkout scm
                 def releaseInstall = InstallReleaseCommand()
                 def samples = TestSamplesCommand()
-                def cmakeCommand = CmakeCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
-                def buildInstall = BuildAndInstallCommand()
+                def buildCommand = BuildCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def buildInstall = InstallBuildCommand()
                 def task = """
-                           ${releaseInstall}
-                           ${samples}
-                           ${cmakeCommand}
+                           ${buildCommand}
                            ${buildInstall}
                            ${samples}
                            """
@@ -186,10 +194,10 @@ def ACCContainerTest(String label, String version, List extra_cmake_args = []) {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
                 cleanWs()
                 checkout scm
-                def cmakeCommand = CmakeCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def buildCommand = BuildCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
                 def testCommand = TestCommand()
                 def task = """
-                           ${cmakeCommand}
+                           ${buildCommand}
                            ${testCommand}
                            """
                 oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
@@ -204,11 +212,11 @@ def ACCPackageTest(String label, String version, List extra_cmake_args = []) {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
                 cleanWs()
                 checkout scm
-                def cmakeCommand = CmakeCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
-                def buildInstall = BuildAndInstallCommand()
+                def buildCommand = BuildCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def buildInstall = InstallBuildCommand()
                 def samples = TestSamplesCommand()
                 def task = """
-                           ${cmakeCommand}
+                           ${buildCommand}
                            ${buildInstall}
                            ${samples}
                            """
@@ -465,17 +473,7 @@ properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '90',
 
 try{
     oe.emailJobStatus('STARTED')
-    def testing_stages = [
-        "Host verification 2004 RelWithDebInfo":            { ACCHostVerificationTest('20.04', 'RelWithDebInfo') },
-        "Host verification 1804 RelWithDebInfo":            { ACCHostVerificationTest('18.04', 'RelWithDebInfo') },
-
-        "Host verification package 2004 RelWithDebInfo":    { ACCHostVerificationPackageTest('20.04', 'RelWithDebInfo') },
-        "Host verification package 1804 RelWithDebInfo":    { ACCHostVerificationPackageTest('18.04', 'RelWithDebInfo') },
-
-        "ACC1804 clang-10 RelWithDebInfo EEID Experimental LVI FULL Tests": { ACCTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'RelWithDebInfo', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=OFF', '-DWITH_EEID=ON']) },
-
-        "ACC2004 clang-10 Debug LVI e2e":                   { ACCTest(AGENTS_LABELS["acc-ubuntu-20.04-vanilla"], 'clang-10', 'Debug',   ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON'], [], true) }
-    ]
+    def testing_stages = [:]
     if(FULL_TEST_SUITE == "true") {
         stage("Full Test Suite") {
             testing_stages += [
@@ -521,25 +519,7 @@ try{
     } else {
         stage("PR Testing") {
             testing_stages += [
-                "ACC2004 Package RelWithDebInfo LVI":              { ACCPackageTest(AGENTS_LABELS["acc-ubuntu-20.04"], '20.04', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-                "ACC1804 Package RelWithDebInfo LVI":              { ACCPackageTest(AGENTS_LABELS["acc-ubuntu-18.04"], '18.04', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-
-                "ACC2004 Container RelWithDebInfo LVI":            { ACCContainerTest(AGENTS_LABELS["acc-ubuntu-20.04"], '20.04', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-                "ACC1804 Container RelWithDebInfo LVI":            { ACCContainerTest(AGENTS_LABELS["acc-ubuntu-18.04"], '18.04', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-
-                "ACC2004 clang-10 Debug LVI":                      { ACCTest(AGENTS_LABELS["acc-ubuntu-20.04"], 'clang-10', 'Debug',          ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-                "ACC2004 clang-10 RelWithDebInfo LVI":             { ACCTest(AGENTS_LABELS["acc-ubuntu-20.04"], 'clang-10', 'RelWithDebInfo', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-                "ACC1804 clang-10 Debug LVI":                      { ACCTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'Debug',          ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) },
-                "ACC1804 clang-10 RelWithDebInfo LVI FULL Tests":  { ACCTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'RelWithDebInfo', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=OFF']) },
-
-                "ACC1804 clang-10 Debug":                          { ACCTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'Debug',          ['-DLVI_MITIGATION=None',        '-DLVI_MITIGATION_SKIP_TESTS=OFF']) },
-
-                "ACC1804 clang-10 RelWithDebInfo":                 { ACCTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'RelWithDebInfo', ['-DLVI_MITIGATION=None',        '-DLVI_MITIGATION_SKIP_TESTS=OFF']) },
-
-                 //"ACC1804 Code Coverage Test" :                     { ACCCodeCoverageTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'Debug') },
-
-                "ACC2004 clang-10 RelWithDebInfo LVI snmalloc":            { ACCTest(AGENTS_LABELS["acc-ubuntu-20.04"], 'clang-10', 'RelWithDebInfo', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON',  '-DUSE_SNMALLOC=ON']) },
-                "ACC1804 clang-10 RelWithDebInfo LVI FULL Tests snmalloc": { ACCTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', 'RelWithDebInfo', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=OFF', '-DUSE_SNMALLOC=ON']) }
+                "ACC1804 Package RelWithDebInfo LVI":              { ACCUpgradeTest(AGENTS_LABELS["acc-ubuntu-18.04"], '18.04', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) }
                 ]
             parallel testing_stages
         }
