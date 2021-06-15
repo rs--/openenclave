@@ -18,21 +18,88 @@ AGENTS_LABELS = [
     "acc-ubuntu-18.04-vanilla": env.UBUNTU_VANILLA_1804_CUSTOM_LABEL ?: "vanilla-ubuntu-1804"
 ]
 
+def CmakeCommand(String build_type = "RelWithDebInfo", String code_coverage = "OFF", String debug_malloc = "ON", String lvi_args="", String cmake_args = "") {
+    def cmake = """
+        cd ${WORKSPACE}
+        cmake ${WORKSPACE}                                          \
+           -G Ninja                                                 \
+           -DCMAKE_INSTALL_PREFIX:PATH='/opt/openenclave'           \
+           -DCPACK_GENERATOR=DEB                                    \
+           -DCODE_COVERAGE=${code_coverage}                         \
+           -DUSE_DEBUG_MALLOC=${debug_malloc}                       \
+           -DCMAKE_BUILD_TYPE=${build_type}                         \
+           ${lvi_args}                                              \
+           ${cmake_args}                                            \
+           -Wdev
+    """
+    return cmake
+}
+
+def TestCommand() {
+    def buildAndTest = """
+        ninja -v
+        ctest --output-on-failure --timeout ${CTEST_TIMEOUT_SECONDS}
+    """
+    return buildAndTest
+}
+
+def BuildAndInstallCommand() {
+    def localPackage = """
+        ninja -v
+        cpack -G DEB
+        sudo ninja -v install
+    """
+    return localPackage
+}
+
+def InstallReleaseCommand() {
+    def install = """
+        echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
+        wget -qO - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | sudo apt-key add -
+
+        echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-7 main" | sudo tee /etc/apt/sources.list.d/llvm-toolchain-bionic-7.list
+        wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+
+        echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main" | sudo tee /etc/apt/sources.list.d/msprod.list
+        wget -qO - https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+        sudo apt update
+        sudo apt install -y open-enclave
+    """
+    return install
+}
+
+def TestSamplesCommand() {
+    def samples = """
+        cp -r /opt/openenclave/share/openenclave/samples ~/
+        cd ~/samples
+        source /opt/openenclave/share/openenclave/openenclaverc
+        for i in *; do
+            if [ -d \${i} ]; then
+                cd \${i}
+                mkdir build
+                cd build
+                cmake ..
+                make
+                make run
+                cd ../..
+            fi
+        done
+    """
+    return samples
+}
+
 def ACCCodeCoverageTest(String label, String compiler, String build_type) {
     stage("${label} ${compiler} ${build_type} Code Coverage") {
         node("${label}") {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
                 cleanWs()
                 checkout scm
+                def cmakeCommand = CmakeCommand(build_type)
+                def testCommand = TestCommand()
                 def task = """
-                           cmake ${WORKSPACE}                                           \
-                               -G Ninja                                                 \
-                               -DCODE_COVERAGE=ON                                       \
-                               -DUSE_DEBUG_MALLOC=OFF                                   \
-                               -DCMAKE_BUILD_TYPE=${build_type}                         \
-                               -Wdev
-                           ninja -v
-                           ctest --output-on-failure --timeout ${CTEST_TIMEOUT_SECONDS}
+                           ${cmakeCommand}
+                           ${testCommand}
                            ninja code_coverage
                            """
                 oe.Run(compiler, task)
@@ -75,15 +142,11 @@ def ACCTest(String label, String compiler, String build_type, List extra_cmake_a
                         done
                         """
                 }
+                def cmakeCommand = CmakeCommand(build_type,"OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def testCommand = TestCommand()
                 def task = """
-                           cmake ${WORKSPACE}                                           \
-                               -G Ninja                                                 \
-                               -DCMAKE_BUILD_TYPE=${build_type}                         \
-                               -DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin    \
-                               ${extra_cmake_args.join(' ')}                            \
-                               -Wdev
-                           ninja -v
-                           ctest --output-on-failure --timeout ${CTEST_TIMEOUT_SECONDS}
+                           ${cmakeCommand}
+                           ${testCommand}
                            """
                 withEnv(test_env) {
                     oe.Run(compiler, task)
@@ -94,21 +157,40 @@ def ACCTest(String label, String compiler, String build_type, List extra_cmake_a
 }
 
 
+def ACCUpgradeTest(String label, String version, List extra_cmake_args = []) {
+    stage("${label} Container ${version} RelWithDebInfo, extra_cmake_args: ${extra_cmake_args}") {
+        node("${label}") {
+            timeout(GLOBAL_TIMEOUT_MINUTES) {
+                cleanWs()
+                checkout scm
+                def releaseInstall = InstallReleaseCommand()
+                def samples = TestSamplesCommand()
+                def cmakeCommand = CmakeCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def buildInstall = BuildAndInstallCommand()
+                def task = """
+                           ${releaseInstall}
+                           ${samples}
+                           ${cmakeCommand}
+                           ${buildInstall}
+                           ${samples}
+                           """
+                oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
+            }
+        }
+    }
+}
+
 def ACCContainerTest(String label, String version, List extra_cmake_args = []) {
     stage("${label} Container ${version} RelWithDebInfo, extra_cmake_args: ${extra_cmake_args}") {
         node("${label}") {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
                 cleanWs()
                 checkout scm
+                def cmakeCommand = CmakeCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def testCommand = TestCommand()
                 def task = """
-                           cmake ${WORKSPACE}                                           \
-                               -G Ninja                                                 \
-                               -DCMAKE_BUILD_TYPE=RelWithDebInfo                        \
-                               -DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin    \
-                               ${extra_cmake_args.join(' ')}                            \
-                               -Wdev
-                           ninja -v
-                           ctest --output-on-failure --timeout ${CTEST_TIMEOUT_SECONDS}
+                           ${cmakeCommand}
+                           ${testCommand}
                            """
                 oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
             }
@@ -122,32 +204,13 @@ def ACCPackageTest(String label, String version, List extra_cmake_args = []) {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
                 cleanWs()
                 checkout scm
+                def cmakeCommand = CmakeCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
+                def buildInstall = BuildAndInstallCommand()
+                def samples = TestSamplesCommand()
                 def task = """
-                           cmake ${WORKSPACE}                                         \
-                             -G Ninja                                                 \
-                             -DCMAKE_BUILD_TYPE=RelWithDebInfo                        \
-                             -DCMAKE_INSTALL_PREFIX:PATH='/opt/openenclave'           \
-                             -DCPACK_GENERATOR=DEB                                    \
-                             -DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin    \
-                             ${extra_cmake_args.join(' ')}                            \
-                             -Wdev
-                           ninja -v
-                           cpack -G DEB
-                           sudo ninja -v install
-                           cp -r /opt/openenclave/share/openenclave/samples ~/
-                           cd ~/samples
-                           source /opt/openenclave/share/openenclave/openenclaverc
-                           for i in *; do
-                               if [ -d \${i} ]; then
-                                   cd \${i}
-                                   mkdir build
-                                   cd build
-                                   cmake ..
-                                   make
-                                   make run
-                                   cd ../..
-                               fi
-                           done
+                           ${cmakeCommand}
+                           ${buildInstall}
+                           ${samples}
                            """
                 oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
             }
