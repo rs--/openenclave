@@ -51,7 +51,6 @@ def TestCommand() {
 def InstallBuildCommand() {
     def localPackage = """
         echo "Running Install Build Command"
-        cd ${WORKSPACE}
         cpack -G DEB
         sudo ninja -v install
     """
@@ -167,7 +166,7 @@ def ACCTest(String label, String compiler, String build_type, List extra_cmake_a
     }
 }
 
-def ACCUpgradeTest(String label, String version, List extra_cmake_args = []) {
+def ACCUpgradeTest(String label, String compiler, String version, List extra_cmake_args = [], List test_env = []) {
     stage("${label} Container ${version} RelWithDebInfo, extra_cmake_args: ${extra_cmake_args}") {
         node("${label}") {
             timeout(GLOBAL_TIMEOUT_MINUTES) {
@@ -187,11 +186,13 @@ def ACCUpgradeTest(String label, String version, List extra_cmake_args = []) {
                              ${extra_cmake_args.join(' ')}                            \
                              -Wdev
                            ninja -v
-                           cpack -G DEB
-                           sudo ninja -v install
+                           ${buildInstall}
                            ${samples}
                            """
-                oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
+                println("Upgrade Task\n"+task)
+                withEnv(test_env) {
+                    oe.Run(compiler, task)
+                }
             }
         }
     }
@@ -528,7 +529,7 @@ try{
     } else {
         stage("PR Testing") {
             testing_stages += [
-                "ACC1804 Package RelWithDebInfo LVI":              { ACCUpgradeTest(AGENTS_LABELS["acc-ubuntu-18.04"], '18.04', ['-DLVI_MITIGATION=None', '-DLVI_MITIGATION_SKIP_TESTS=ON']) }
+                "ACC1804 Package RelWithDebInfo LVI":              { ACCUpgradeTest(AGENTS_LABELS["acc-ubuntu-18.04"], 'clang-10', '18.04', ['-DLVI_MITIGATION=None', '-DLVI_MITIGATION_SKIP_TESTS=ON']) }
                 ]
             parallel testing_stages
         }
