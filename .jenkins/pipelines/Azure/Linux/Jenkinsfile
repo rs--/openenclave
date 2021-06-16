@@ -519,7 +519,7 @@ try{
     } else {
         stage("PR Testing") {
             testing_stages += [
-                "ACC1804 Package RelWithDebInfo LVI":              { ACCUpgradeTest(AGENTS_LABELS["acc-ubuntu-18.04"], '18.04', ['-DLVI_MITIGATION=ControlFlow', '-DLVI_MITIGATION_SKIP_TESTS=ON']) }
+                "ACC1804 Package RelWithDebInfo LVI":              { ACCUpgradeTest(AGENTS_LABELS["acc-ubuntu-18.04"], '18.04', ['-DLVI_MITIGATION=None', '-DLVI_MITIGATION_SKIP_TESTS=ON']) }
                 ]
             parallel testing_stages
         }
