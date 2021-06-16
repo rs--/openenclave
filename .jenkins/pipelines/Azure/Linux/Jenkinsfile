@@ -52,7 +52,7 @@ def InstallBuildCommand() {
     def localPackage = """
         echo "Running Install Build Command"
         cd ${WORKSPACE}
-        cpack
+        cpack -G DEB
         sudo ninja -v install
     """
     println("CI Command: Install Build\n"+localPackage)
@@ -178,8 +178,17 @@ def ACCUpgradeTest(String label, String version, List extra_cmake_args = []) {
                 def buildCommand = BuildCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
                 def buildInstall = InstallBuildCommand()
                 def task = """
-                           ${buildCommand}
-                           ${buildInstall}
+                           cmake ${WORKSPACE}                                         \
+                             -G Ninja                                                 \
+                             -DCMAKE_BUILD_TYPE=RelWithDebInfo                        \
+                             -DCMAKE_INSTALL_PREFIX:PATH='/opt/openenclave'           \
+                             -DCPACK_GENERATOR=DEB                                    \
+                             -DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin    \
+                             ${extra_cmake_args.join(' ')}                            \
+                             -Wdev
+                           ninja -v
+                           cpack -G DEB
+                           sudo ninja -v install
                            ${samples}
                            """
                 oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
