@@ -52,6 +52,7 @@ def InstallBuildCommand() {
     def localPackage = """
         echo "Running Install Build Command"
         cpack -G DEB
+        sudo killall -9 apt && sudo killall -9 dpkg
         sudo ninja -v install
     """
     println("CI Command: Install Build\n"+localPackage)
@@ -71,21 +72,27 @@ def InstallReleaseCommand() {
         wget -qO - https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
 
         sudo apt update
+        sudo killall -9 apt && sudo killall -9 dpkg
         sudo apt install -y open-enclave
+
+        echo "Open Enclave SDK version installed"
+        apt list --installed | grep open-enclave
     """
     println("CI Command: Install Release\n"+install)
     return install
 }
 
 def TestSamplesCommand() {
-    def samples = """
+    def testSamples = """
         echo "Running Test Samples Command"
         cp -r /opt/openenclave/share/openenclave/samples ~/
-        cd ~/samples
+        pushd ~/samples
+        echo "pwd: `pwd`, ls: `ls -l`"
         source /opt/openenclave/share/openenclave/openenclaverc
         for i in *; do
             if [ -d \${i} ]; then
                 cd \${i}
+                echo ">> pwd: `pwd`, ls: `ls -l`"
                 mkdir build
                 cd build
                 cmake ..
@@ -94,9 +101,13 @@ def TestSamplesCommand() {
                 cd ../..
             fi
         done
+        echo "pre-pod: `pwd`, ls: `ls`"
+        popd
+        echo "post-pod: `pwd`, ls: `ls`"
+        rm -rf ~/samples
     """
-    println("CI Command: Test Samples\n"+samples)
-    return samples
+    println("CI Command: Test Samples\n"+testSamples)
+    return testSamples
 }
 
 def ACCCodeCoverageTest(String label, String compiler, String build_type) {
@@ -173,10 +184,12 @@ def ACCUpgradeTest(String label, String compiler, String version, List extra_cma
                 cleanWs()
                 checkout scm
                 def releaseInstall = InstallReleaseCommand()
-                def samples = TestSamplesCommand()
+                def testSamples = TestSamplesCommand()
                 def buildCommand = BuildCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
                 def buildInstall = InstallBuildCommand()
                 def task = """
+                           ${releaseInstall}
+                           ${testSamples}
                            cmake ${WORKSPACE}                                         \
                              -G Ninja                                                 \
                              -DCMAKE_BUILD_TYPE=RelWithDebInfo                        \
@@ -187,7 +200,7 @@ def ACCUpgradeTest(String label, String compiler, String version, List extra_cma
                              -Wdev
                            ninja -v
                            ${buildInstall}
-                           ${samples}
+                           ${testSamples}
                            """
                 println("Upgrade Task\n"+task)
                 withEnv(test_env) {
@@ -224,11 +237,11 @@ def ACCPackageTest(String label, String version, List extra_cmake_args = []) {
                 checkout scm
                 def buildCommand = BuildCommand("RelWithDebInfo","OFF","ON","-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin",extra_cmake_args.join(' '))
                 def buildInstall = InstallBuildCommand()
-                def samples = TestSamplesCommand()
+                def testSamples = TestSamplesCommand()
                 def task = """
                            ${buildCommand}
                            ${buildInstall}
-                           ${samples}
+                           ${testSamples}
                            """
                 oe.ContainerRun("oetools-${version}:${DOCKER_TAG}", "clang-10", task, "--cap-add=SYS_PTRACE --device /dev/sgx:/dev/sgx --volume /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket")
             }
