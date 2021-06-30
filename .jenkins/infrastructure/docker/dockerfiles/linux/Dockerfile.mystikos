@@ -1,0 +1,22 @@
+# Copyright (c) Open Enclave SDK contributors.
+# Licensed under the MIT License.
+
+
+ARG ubuntu_version=18.04
+ARG mystikos_branch=mystikos.v4
+ARG install_dir=/work/install
+
+FROM oeciteam/oetool-${ubuntu_version}:latest
+
+RUN mkdir /work
+WORKDIR /work
+RUN git clone --recursive https://github.com/openenclave/openenclave -b ${mystikos_branch}
+
+WORKDIR /work/openenclave
+RUN mkdir build
+WORKDIR /work/openenclave/build
+
+RUN cmake -G Ninja .. -DHAS_QUOTE_PROVIDER=OFF -DBUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${install_dir}
+RUN ninja -v
+RUN cpack -G DEB
+RUN ninja -v install
