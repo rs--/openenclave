@@ -21,9 +21,9 @@ def buildMystikosDockerContainers() {
                 cleanWs()
                 checkout scm
             }
-            String buildArgs = oe.dockerBuildArgs("ubuntu_version=${MYSTIKOS_OS}",
-                                                  "mystikos_branch=${MYSTIKOS_BRANCH}",
-                                                  "install_dir=${MYSTIKOS_OE_PATH}")
+            String buildArgs = oe.dockerBuildArgs("ubuntu_version=" + MYSTIKOS_OS,
+                                                  "mystikos_branch=" + MYSTIKOS_BRANCH,
+                                                  "install_dir=" + MYSTIKOS_OE_PATH)
             stage("Build Ubuntu 18.04 Docker Image") {
                 oe1804 = oe.dockerImage("oeciteam/oetools-18.04:${DOCKER_TAG}", LINUX_DOCKERFILE, "${buildArgs}")
             }
