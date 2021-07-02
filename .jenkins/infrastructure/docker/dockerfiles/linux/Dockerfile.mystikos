@@ -6,11 +6,11 @@ ARG ubuntu_version=18.04
 ARG mystikos_branch=mystikos.v4
 ARG install_dir=/work/install
 
-FROM oeciteam/oetool-${ubuntu_version}:latest
+FROM oeciteam/oetools-${ubuntu_version}:latest
 
 RUN mkdir /work
 WORKDIR /work
-RUN git clone --recursive https://github.com/openenclave/openenclave -b ${mystikos_branch}
+RUN git clone -b ${mystikos_branch} https://github.com/openenclave/openenclave.git --recursive
 
 WORKDIR /work/openenclave
 RUN mkdir build
