@@ -10,6 +10,7 @@ TIMEOUT_MINUTES = params.TIMEOUT_MINUTES ?: 240
 DOCKERHUB_REPO_CREDS = params.DOCKERHUB_REPO_CREDS ?: "oeciteamdockerhub"
 LINUX_DOCKERFILE = ".jenkins/infrastructure/docker/dockerfiles/linux/Dockerfile.mystikos"
 
+DOCKER_TAG = params.DOCKER_TAG ?: "mystikos"
 MYSTIKOS_OS = params.MYSTIKOS_OS ?: "18.04"
 MYSTIKOS_BRANCH = params.MYSTIKOS_BRANCH ?: "mystikos.v4"
 MYSTIKOS_OE_PATH = params.MYSTIKOS_OE_PATH ?: "/work/install"
@@ -32,7 +33,6 @@ def buildMystikosDockerContainers() {
             stage("Push to OE Docker Hub Registry") {
                 docker.withRegistry('', DOCKERHUB_REPO_CREDS) {
                     oe.exec_with_retry { oe1804.push() }
-                    oe.exec_with_retry { oe1804.push('latest') }
                 }
             }
         }
