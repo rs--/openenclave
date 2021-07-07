@@ -25,7 +25,9 @@ def buildMystikosDockerContainers() {
                                                   "mystikos_branch=" + MYSTIKOS_BRANCH,
                                                   "install_dir=" + MYSTIKOS_OE_PATH)
             stage("Build Ubuntu 18.04 Docker Image") {
-                oe1804 = oe.dockerImage("oeciteam/oetools-18.04:${DOCKER_TAG}", LINUX_DOCKERFILE, "${buildArgs}")
+                docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_REPO_CREDS) {
+                    oe1804 = oe.dockerImage("oeciteam/oetools-18.04:${DOCKER_TAG}", LINUX_DOCKERFILE, "${buildArgs} --progress=plain")
+                }
             }
             stage("Push to OE Docker Hub Registry") {
                 docker.withRegistry('', DOCKERHUB_REPO_CREDS) {
